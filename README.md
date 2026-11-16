@@ -6,12 +6,11 @@ The workflow is gated by the protected `telegraph-testnet` GitHub Environment. E
 
 ## Setup
 
-1. Copy `workflow-template.yml` into `.github/workflows/proofgate.yml` in a public app repository.
-2. Copy this directory to `apps/pr-intelligence-gate` in that repository.
-3. Enable the `telegraph-testnet` GitHub Environment and require reviewer approval before the job can access secrets.
-4. Add `TELEGRAPH_EVM_PRIVATE_KEY` as an environment secret for a dedicated test wallet only. Do not use a wallet holding meaningful assets.
-5. Set a low-balance wallet and review every run. A run makes up to four paid Engine requests; repeated PR updates can make additional requests.
-6. The workflow posts a GitHub Check and step summary with outcomes and available request receipts.
+1. Fork this repository or copy it into a public repository you control.
+2. Enable the `telegraph-testnet` GitHub Environment and require reviewer approval before the job can access secrets.
+3. Add `TELEGRAPH_EVM_PRIVATE_KEY` as an environment secret for a dedicated, low-balance test wallet only. Do not use a wallet holding meaningful assets.
+4. Review and enable the workflow. Each eligible PR update can make up to six paid requests.
+5. The workflow posts a GitHub Check and step summary with outcomes and available request receipts.
 
 The payment client uses the x402 EVM client packages and EIP-3009 authorization. The engine selects the accepted payment network from its 402 challenge. This repository does not include a live paid receipt yet; the app must be run by its owner with a funded test wallet to produce that evidence.
 
