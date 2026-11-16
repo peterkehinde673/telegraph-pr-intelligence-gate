@@ -1,0 +1,13 @@
+{
+  "name": "telegraph-pr-intelligence-gate",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": { "run": "node src/run.mjs" },
+  "dependencies": {
+    "@x402/core": "^2.0.0",
+    "@x402/evm": "^2.0.0",
+    "@x402/fetch": "^2.0.0",
+    "viem": "^2.0.0"
+  }
+}

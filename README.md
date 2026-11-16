@@ -1,0 +1,29 @@
+# ProofGate — Telegraph PR Intelligence
+
+ProofGate runs four typed Telegraph requests for an eligible pull request: `CODE_REVIEW_GENERAL`, `SECURITY_REVIEW_GENERAL`, `CODE_PATCH_VERIFY_GENERAL`, and `REGRESSION_VERIFY_GENERAL`. It also looks for CVE identifiers in the diff and makes up to two additional `CVE_LOOKUP_CVSS` requests. The live catalog was checked on 2026-11-16; it listed respectively 18, 32, 24, 20, and 21 miners. The app records the returned result, miner ID, cost, and signal hash where the Engine supplies them. Routing to a particular miner is not guaranteed.
+
+The workflow is gated by the protected `telegraph-testnet` GitHub Environment. Each event can incur up to six paid requests. Configure a dedicated burner wallet with only the test funds you authorize. ProofGate never stores a key in the repository. Fork pull requests and private repositories are skipped, the diff is truncated to a configurable byte limit, and the app does not merge or change code.
+
+## Setup
+
+1. Copy `workflow-template.yml` into `.github/workflows/proofgate.yml` in a public app repository.
+2. Copy this directory to `apps/pr-intelligence-gate` in that repository.
+3. Enable the `telegraph-testnet` GitHub Environment and require reviewer approval before the job can access secrets.
+4. Add `TELEGRAPH_EVM_PRIVATE_KEY` as an environment secret for a dedicated test wallet only. Do not use a wallet holding meaningful assets.
+5. Set a low-balance wallet and review every run. A run makes up to four paid Engine requests; repeated PR updates can make additional requests.
+6. The workflow posts a GitHub Check and step summary with outcomes and available request receipts.
+
+The payment client uses the x402 EVM client packages and EIP-3009 authorization. The engine selects the accepted payment network from its 402 challenge. This repository does not include a live paid receipt yet; the app must be run by its owner with a funded test wallet to produce that evidence.
+
+## Scope and limitations
+
+- These are separate ranked Intent requests, not one magical consensus verdict. Inspect each result independently.
+- The patch and regression Intents check a repository/change reference; their responses may be unavailable if the selected miners cannot access it.
+- The code/security requests receive the PR diff as text; the app does not upload private repositories to a third-party code host beyond the Telegraph request itself. Requests may be public in Telegraph feeds, so do not run on confidential diffs without understanding the platform's disclosure model.
+- A passing review is not proof of safety. The app never auto-merges.
+- No retries are attempted after a paid request fails. Results are marked unavailable and the workflow continues to collect the remaining checks.
+- The source checkout is currently private; publish the app as a separate public repository before using it as the submission source-code link. Keep miner configuration and private evaluation data out of that repository.
+
+## Verify locally
+
+Install the listed dependencies, then inspect the live schemas at `GET /engine/v1/intents/{intent}` before use. Do not run against production unless the operator explicitly chooses the environment and accepts the per-request cost.
