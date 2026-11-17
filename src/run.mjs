@@ -12,6 +12,7 @@ const token = process.env.GITHUB_TOKEN;
 const eventPath = process.env.GITHUB_EVENT_PATH;
 const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 const maxDiffBytes = Number(process.env.PROOFGATE_MAX_DIFF_BYTES || 12000);
+const targetMinerId = process.env.TELEGRAPH_MINER_ID || "5530";
 
 if (!key || !repo || !sha || !token || !eventPath) {
   throw new Error("Missing required runtime configuration. Set TELEGRAPH_EVM_PRIVATE_KEY and provide GitHub Actions context.");
@@ -95,7 +96,7 @@ for (const cveId of cveIds) {
 
 const results = [];
 for (const task of tasks) {
-  const response = await paidFetch(`${engine}/v1/ask`, {
+  const response = await paidFetch(`${engine}/v1/ask/${encodeURIComponent(targetMinerId)}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ intent: task.intent, params: task.params })
@@ -103,6 +104,10 @@ for (const task of tasks) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     results.push({ ...task, error: body.message || body.error || `Engine HTTP ${response.status}` });
+    continue;
+  }
+  if (body.miner_id != null && String(body.miner_id) !== String(targetMinerId)) {
+    results.push({ ...task, error: `Engine returned miner ${body.miner_id}; expected directly targeted miner ${targetMinerId}.` });
     continue;
   }
   results.push({

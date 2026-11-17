@@ -1,8 +1,8 @@
 # ProofGate — Telegraph PR Intelligence
 
-ProofGate runs four typed Telegraph requests for an eligible pull request: `CODE_REVIEW_GENERAL`, `SECURITY_REVIEW_GENERAL`, `CODE_PATCH_VERIFY_GENERAL`, and `REGRESSION_VERIFY_GENERAL`. It also looks for CVE identifiers in the diff and makes up to two additional `CVE_LOOKUP_CVSS` requests. The live catalog was checked on 2026-11-16; it listed respectively 18, 32, 24, 20, and 21 miners. The app records the returned result, miner ID, cost, and signal hash where the Engine supplies them. Routing to a particular miner is not guaranteed.
+ProofGate makes four typed Telegraph requests directly to miner 5530 for an eligible pull request: `CODE_REVIEW_GENERAL`, `SECURITY_REVIEW_GENERAL`, `CODE_PATCH_VERIFY_GENERAL`, and `REGRESSION_VERIFY_GENERAL`. It also looks for CVE identifiers in the diff and makes up to two additional `CVE_LOOKUP_CVSS` requests. Miner 5530's active registry entry advertises all five Intents. The app records the returned result, miner ID, cost, and signal hash where the Engine supplies them, and marks the result unavailable if the Engine reports a different miner.
 
-The workflow is gated by the protected `telegraph-testnet` GitHub Environment. Each event can incur up to six paid requests. Configure a dedicated burner wallet with only the test funds you authorize. ProofGate never stores a key in the repository. Fork pull requests and private repositories are skipped, the diff is truncated to a configurable byte limit, and the app does not merge or change code.
+The workflow is gated by the protected `telegraph-testnet` GitHub Environment. Each event can incur up to six paid requests. Configure a dedicated burner wallet with only the test funds you authorize. ProofGate never stores a key in the repository. Fork pull requests and private repositories are skipped, the diff is truncated to a configurable byte limit, and the app does not merge or change code. Set `TELEGRAPH_MINER_ID` to override the default target miner ID 5530.
 
 ## Setup
 
