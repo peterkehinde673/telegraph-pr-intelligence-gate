@@ -1,5 +1,21 @@
 # ProofGate — Telegraph PR Intelligence
 
+This repository is a public demo target for ProofGate. It contains a tiny JavaScript example and the ProofGate workflow. Follow the setup below before opening the sample pull request.
+
+## First-time setup
+
+1. In this repository, open **Settings → Environments** and create `telegraph-testnet`.
+2. Add the secret `TELEGRAPH_EVM_PRIVATE_KEY` to that environment. Use only a dedicated test wallet with a small balance. The secret from the ProofGate app repository does not carry over to this repository.
+3. No reviewer is required. Without reviewers, an eligible pull request starts automatically after you open it.
+4. Create a pull request from the branch `demo/security-review-sample` to `main`.
+5. Open the PR’s **Checks** tab and find **ProofGate / Telegraph PR Intelligence**. Review the step summary and save the result and available receipt as hackathon evidence.
+
+The workflow can make up to six paid requests for this single PR event. Further pushes to the PR can make more requests. The sample change below is intentionally unsafe demonstration code, not a real application or credential.
+
+## Demo sample
+
+The PR adds an `eval` call using input text to give the code reviewer a clear issue to report. It uses no real secrets and makes no external code changes.
+
 ProofGate runs four typed Telegraph requests for an eligible pull request: `CODE_REVIEW_GENERAL`, `SECURITY_REVIEW_GENERAL`, `CODE_PATCH_VERIFY_GENERAL`, and `REGRESSION_VERIFY_GENERAL`. It also looks for CVE identifiers in the diff and makes up to two additional `CVE_LOOKUP_CVSS` requests. The live catalog was checked on 2026-11-16; it listed respectively 18, 32, 24, 20, and 21 miners. The app records the returned result, miner ID, cost, and signal hash where the Engine supplies them. Routing to a particular miner is not guaranteed.
 
 The workflow is gated by the protected `telegraph-testnet` GitHub Environment. Each event can incur up to six paid requests. Configure a dedicated burner wallet with only the test funds you authorize. ProofGate never stores a key in the repository. Fork pull requests and private repositories are skipped, the diff is truncated to a configurable byte limit, and the app does not merge or change code.
