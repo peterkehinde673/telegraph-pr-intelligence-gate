@@ -4,7 +4,9 @@ import { ExactEvmScheme } from "@x402/evm/exact/client";
 import { privateKeyToAccount } from "viem/accounts";
 
 const engine = (process.env.TELEGRAPH_ENGINE_URL || "https://devnode.telegraphprotocol.com/engine").replace(/\/$/, "");
-const key = process.env.TELEGRAPH_EVM_PRIVATE_KEY;
+const anjomanApiBase = (process.env.TELEGRAPH_API_BASE_URL || "https://backend.telegraphprotocol.com").replace(/\/$/, "");
+const anjomanApiKey = process.env.TELEGRAPH_API_KEY;
+const walletKey = process.env.TELEGRAPH_EVM_PRIVATE_KEY;
 const repo = process.env.GITHUB_REPOSITORY;
 const sha = process.env.GITHUB_SHA;
 const apiUrl = process.env.GITHUB_API_URL || "https://api.github.com";
@@ -14,10 +16,10 @@ const summaryPath = process.env.GITHUB_STEP_SUMMARY;
 const maxDiffBytes = Number(process.env.PROOFGATE_MAX_DIFF_BYTES || 12000);
 const targetMinerId = process.env.TELEGRAPH_MINER_ID || "5530";
 
-if (!key || !repo || !sha || !token || !eventPath) {
-  throw new Error("Missing required runtime configuration. Set TELEGRAPH_EVM_PRIVATE_KEY and provide GitHub Actions context.");
+if ((!anjomanApiKey && !walletKey) || !repo || !sha || !token || !eventPath) {
+  throw new Error("Missing required runtime configuration. Set TELEGRAPH_API_KEY or TELEGRAPH_EVM_PRIVATE_KEY and provide GitHub Actions context.");
 }
-if (!/^0x[0-9a-fA-F]{64}$/.test(key)) throw new Error("TELEGRAPH_EVM_PRIVATE_KEY must be a 32-byte EVM private key.");
+if (!anjomanApiKey && !/^0x[0-9a-fA-F]{64}$/.test(walletKey)) throw new Error("TELEGRAPH_EVM_PRIVATE_KEY must be a 32-byte EVM private key.");
 if (!Number.isInteger(maxDiffBytes) || maxDiffBytes < 256 || maxDiffBytes > 24000) {
   throw new Error("PROOFGATE_MAX_DIFF_BYTES must be an integer from 256 through 24000.");
 }
@@ -29,10 +31,13 @@ if (pr.head?.repo?.full_name !== repo) {
   throw new Error("Fork pull requests are skipped so payment secrets are never exposed to untrusted code.");
 }
 
-const signer = privateKeyToAccount(key);
-const client = new x402Client();
-client.register("eip155:*", new ExactEvmScheme(signer));
-const paidFetch = wrapFetchWithPayment(fetch, client);
+let telegraphFetch = fetch;
+if (!anjomanApiKey) {
+  const signer = privateKeyToAccount(walletKey);
+  const client = new x402Client();
+  client.register("eip155:*", new ExactEvmScheme(signer));
+  telegraphFetch = wrapFetchWithPayment(fetch, client);
+}
 
 async function github(path, init = {}) {
   const response = await fetch(`${apiUrl}/repos/${repo}${path}`, {
@@ -96,27 +101,41 @@ for (const cveId of cveIds) {
 
 const results = [];
 for (const task of tasks) {
-  const response = await paidFetch(`${engine}/v1/ask/${encodeURIComponent(targetMinerId)}`, {
+  const askUrl = anjomanApiKey
+    ? anjomanApiBase + "/engine/ask/" + encodeURIComponent(targetMinerId)
+    : engine + "/v1/ask/" + encodeURIComponent(targetMinerId);
+  const response = await telegraphFetch(askUrl, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      ...(anjomanApiKey ? { authorization: "Bearer " + anjomanApiKey } : {})
+    },
     body: JSON.stringify({ intent: task.intent, params: task.params })
   });
-  const body = await response.json().catch(() => ({}));
+  const wireBody = await response.json().catch(() => ({}));
+  const body = wireBody?.receipt && wireBody?.result && typeof wireBody.result === "object"
+    ? wireBody.result
+    : wireBody;
   if (!response.ok) {
-    results.push({ ...task, error: body.message || body.error || `Engine HTTP ${response.status}` });
+    const message = String(body.message || body.error || "Engine HTTP " + response.status);
+    results.push({
+      ...task,
+      error: [anjomanApiKey, walletKey].filter(Boolean).reduce((text, secret) => text.replaceAll(secret, "[redacted]"), message)
+    });
     continue;
   }
-  if (body.miner_id != null && String(body.miner_id) !== String(targetMinerId)) {
-    results.push({ ...task, error: `Engine returned miner ${body.miner_id}; expected directly targeted miner ${targetMinerId}.` });
+  const returnedMinerId = body.miner_id ?? body.minerId;
+  if (returnedMinerId != null && String(returnedMinerId) !== String(targetMinerId)) {
+    results.push({ ...task, error: "Engine returned miner " + returnedMinerId + "; expected directly targeted miner " + targetMinerId + "." });
     continue;
   }
   results.push({
     ...task,
     result: body.result ?? null,
-    minerId: body.miner_id ?? null,
-    costUsd: body.cost_usd ?? null,
-    signalHash: body.signal_hash ?? null,
-    resultShape: body.result_shape ?? null
+    minerId: returnedMinerId ?? null,
+    costUsd: body.cost_usd ?? body.costUsd ?? null,
+    signalHash: body.signal_hash ?? body.signalHash ?? null,
+    resultShape: body.result_shape ?? body.resultShape ?? null
   });
 }
 

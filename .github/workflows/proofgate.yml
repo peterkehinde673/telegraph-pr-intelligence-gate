@@ -22,6 +22,7 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm run run
         env:
+          TELEGRAPH_API_KEY: ${{ secrets.TELEGRAPH_API_KEY }}
           TELEGRAPH_EVM_PRIVATE_KEY: ${{ secrets.TELEGRAPH_EVM_PRIVATE_KEY }}
           TELEGRAPH_MINER_ID: "5530"
           GITHUB_TOKEN: ${{ github.token }}

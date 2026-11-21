@@ -1,6 +1,7 @@
 # Copy into .github/workflows/proofgate.yml in the app's public repository.
-# Add TELEGRAPH_EVM_PRIVATE_KEY as an environment secret and protect the
-# `telegraph-testnet` environment with required reviewer approval.
+# Add TELEGRAPH_API_KEY as an environment secret and protect the
+# `telegraph-testnet` environment with required reviewer approval. The legacy
+# wallet payment path can use TELEGRAPH_EVM_PRIVATE_KEY instead.
 name: ProofGate
 on:
   pull_request:
@@ -23,11 +24,11 @@ jobs:
         with:
           node-version: 22
       - run: npm ci --ignore-scripts --no-audit --no-fund
-        working-directory: apps/pr-intelligence-gate
       - run: npm run run
-        working-directory: apps/pr-intelligence-gate
         env:
+          TELEGRAPH_API_KEY: ${{ secrets.TELEGRAPH_API_KEY }}
           TELEGRAPH_EVM_PRIVATE_KEY: ${{ secrets.TELEGRAPH_EVM_PRIVATE_KEY }}
+          TELEGRAPH_MINER_ID: "5530"
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SHA: ${{ github.event.pull_request.head.sha }}
