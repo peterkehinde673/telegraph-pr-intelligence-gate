@@ -3,7 +3,11 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=20" },
-  "scripts": { "run": "node src/run.mjs" },
+  "scripts": {
+    "run": "node src/run.mjs",
+    "ask-intent": "node src/intent-agent.mjs",
+    "test": "node --test"
+  },
   "dependencies": {
     "@x402/core": "^2.0.0",
     "@x402/evm": "^2.0.0",
