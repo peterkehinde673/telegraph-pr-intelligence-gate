@@ -26,3 +26,24 @@ With `TELEGRAPH_API_KEY`, ProofGate calls Anjoman's authenticated direct-miner e
 ## Verify locally
 
 Install the listed dependencies, then inspect the live schemas at `GET /engine/v1/intents/{intent}` before use. Do not run against production unless the operator explicitly chooses the environment and accepts the per-request cost.
+## Request any supported miner Intent
+
+The interactive intent agent can make one direct request to the active Telegraph Verity Intelligence miner using the live registry and typed schema. It lists the supported Intents, checks the selected Intent against the miner record, shows required fields from the live schema, and validates the JSON parameters before offering a paid call. If Telegraph publishes no typed request fields, it asks for a plain-language query instead.
+
+Run it locally with Node 20 or newer:
+
+```sh
+npm run ask-intent
+```
+
+Set TELEGRAPH_API_KEY in the local shell environment before starting. The key is never prompted for or printed. Use only public-safe input: the request content is sent to Telegraph. The agent shows the registered minimum price, asks you to type SEND, makes at most one paid request, and does not retry. The final response includes the returned miner ID, cost, signal hash, and result where available.
+
+The interactive agent is a local operator tool; its request text is not sent through GitHub Actions. It does not call all Intents automatically and does not change the miner registration or YAML.
+
+Run the offline unit tests with:
+
+```sh
+npm test
+```
+
+Tests use mocked catalog, schema, and payment responses; they do not make paid requests.
