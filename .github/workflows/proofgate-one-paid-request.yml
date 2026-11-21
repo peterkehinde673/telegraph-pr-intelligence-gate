@@ -1,0 +1,77 @@
+name: ProofGate Single Paid Request
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_paid_request:
+        description: "Send exactly one paid CODE_REVIEW_GENERAL request to miner 5530"
+        type: choice
+        options:
+          - "no"
+          - "yes"
+        default: "no"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  one-paid-request:
+    if: github.ref == 'refs/heads/main' && inputs.confirm_paid_request == 'yes'
+    runs-on: ubuntu-latest
+    environment: telegraph-testnet
+    timeout-minutes: 3
+    steps:
+      - name: Send one request
+        env:
+          TELEGRAPH_API_KEY: ${{ secrets.TELEGRAPH_API_KEY }}
+        run: |
+          node --input-type=module <<'NODE'
+          const key = process.env.TELEGRAPH_API_KEY;
+          if (!key) {
+            throw new Error("TELEGRAPH_API_KEY is unavailable in the telegraph-testnet environment.");
+          }
+
+          const response = await fetch("https://backend.telegraphprotocol.com/engine/ask/5530", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              authorization: "Bearer " + key
+            },
+            body: JSON.stringify({
+              intent: "CODE_REVIEW_GENERAL",
+              params: {
+                code: "function add(a, b) { return a + b; }"
+              }
+            }),
+            signal: AbortSignal.timeout(60000)
+          });
+
+          const raw = await response.text();
+          let payload = {};
+          try {
+            payload = raw ? JSON.parse(raw) : {};
+          } catch {
+            payload = {};
+          }
+
+          const result = payload?.receipt && payload?.result && typeof payload.result === "object"
+            ? payload.result
+            : payload;
+          const returnedMinerId = result.miner_id ?? result.minerId ?? payload.miner_id ?? payload.minerId ?? "Unavailable";
+          const cost = result.cost_usd ?? result.costUsd ?? payload.cost_usd ?? payload.costUsd ?? "Unavailable";
+          const signal = result.signal_hash ?? result.signalHash ?? payload.signal_hash ?? payload.signalHash ?? "Unavailable";
+
+          console.log("HTTP status:", response.status);
+          console.log("Miner ID:", returnedMinerId);
+          console.log("Cost USD:", cost);
+          console.log("Signal hash:", signal);
+
+          if (!response.ok) {
+            const message = String(payload.message ?? payload.error ?? "Request rejected");
+            throw new Error("Paid request returned HTTP " + response.status + ": " + message.replaceAll(key, "[redacted]"));
+          }
+          if (returnedMinerId !== "Unavailable" && String(returnedMinerId) !== "5530") {
+            throw new Error("Response miner ID did not match 5530.");
+          }
+          NODE
