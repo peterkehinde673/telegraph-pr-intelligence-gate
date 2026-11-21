@@ -39,7 +39,7 @@ export function parseParamsJson(raw) {
     throw new Error("Parameters must be valid JSON.");
   }
   if (!isRecord(parsed)) {
-    throw new Error("Parameters must be a JSON object, such as {"query":"example"}.");
+    throw new Error('Parameters must be a JSON object, such as {"query":"example"}.');
   }
   const byteLength = new TextEncoder().encode(JSON.stringify(parsed)).byteLength;
   if (byteLength > MAX_PARAMS_BYTES) {
@@ -297,6 +297,7 @@ export async function runInteractiveAgent({
     output.write("Signal hash: " + (receipt.signalHash ?? "Unavailable") + "\n");
     if (receipt.minerMismatch) {
       output.write("ERROR: The response miner ID did not match the requested miner.\n");
+      process.exitCode = 1;
       return receipt;
     }
     output.write("Result:\n" + JSON.stringify(receipt.result, null, 2) + "\n");
